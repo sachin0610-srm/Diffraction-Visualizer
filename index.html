@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diffraction Pattern Visualizer | Interactive Physics Simulator</title>
+    <meta name="description" content="Real-time interactive simulator for single-slit and multi-slit diffraction patterns with accurate physics and 2D/3D visualization.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- MathJax -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea'] },
+            startup: { typeset: true }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>🔬 Diffraction Visualizer</h1>
+            <p class="subtitle">Interactive Wave Optics Simulator</p>
+            <div id="header-accent"></div>
+        </div>
+
+        <div class="sidebar-body">
+
+            <!-- ── Mode Toggle ──────────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">⚙️</span> Mode</div>
+                <div class="toggle-row">
+                    <span>Single Slit</span>
+                    <label class="toggle-switch" for="mode-toggle">
+                        <input type="checkbox" id="mode-toggle">
+                        <span class="toggle-track"></span>
+                    </label>
+                    <span>Grating</span>
+                </div>
+                <div style="text-align:center; margin-top:4px;">
+                    <span id="mode-label" class="toggle-label-dynamic">Single Slit</span>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- ── Wavelength ───────────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">🌈</span> Light Source</div>
+                <div class="control-row">
+                    <div class="control-label">
+                        <div class="wavelength-indicator">
+                            <div class="color-swatch" id="wavelength-swatch"></div>
+                            <span>Wavelength (λ)</span>
+                        </div>
+                        <span class="control-value" id="wavelength-val">550 nm</span>
+                    </div>
+                    <input type="range" id="wavelength-slider"
+                           min="380" max="700" step="1" value="550">
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- ── Slit Parameters ──────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">📐</span> Slit Parameters</div>
+
+                <div class="control-row">
+                    <div class="control-label">
+                        <span>Slit Width (a)</span>
+                        <span class="control-value" id="slit-width-val">2.00 μm</span>
+                    </div>
+                    <input type="range" id="slit-width-slider"
+                           min="0.5" max="20" step="0.1" value="2">
+                </div>
+
+                <div id="grating-controls">
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Slit Spacing (d)</span>
+                            <span class="control-value" id="slit-spacing-val">8.0 μm</span>
+                        </div>
+                        <input type="range" id="slit-spacing-slider"
+                               min="1" max="50" step="0.5" value="8">
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Number of Slits (N)</span>
+                            <span class="control-value" id="num-slits-val">2</span>
+                        </div>
+                        <input type="range" id="num-slits-slider"
+                               min="2" max="20" step="1" value="2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- ── Screen Distance ──────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">📏</span> Observation</div>
+                <div class="control-row">
+                    <div class="control-label">
+                        <span>Screen Distance (L)</span>
+                        <span class="control-value" id="screen-dist-val">1.00 m</span>
+                    </div>
+                    <input type="range" id="screen-dist-slider"
+                           min="0.1" max="5" step="0.05" value="1">
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- ── Comparison Mode ──────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">⚖️</span> Comparison</div>
+                <div class="toggle-row">
+                    <span>Comparison Mode</span>
+                    <label class="toggle-switch" for="comparison-toggle">
+                        <input type="checkbox" id="comparison-toggle">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+
+                <div id="comparison-controls" class="hidden">
+                    <div class="comparison-label">Set B Parameters</div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <div class="wavelength-indicator">
+                                <div class="color-swatch" id="wavelength-swatch-b"></div>
+                                <span>Wavelength B</span>
+                            </div>
+                            <span class="control-value" id="wavelength-val-b">650 nm</span>
+                        </div>
+                        <input type="range" id="wavelength-slider-b"
+                               min="380" max="700" step="1" value="650">
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Slit Width B</span>
+                            <span class="control-value" id="slit-width-val-b">2.00 μm</span>
+                        </div>
+                        <input type="range" id="slit-width-slider-b"
+                               min="0.5" max="20" step="0.1" value="2">
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Slit Spacing B</span>
+                            <span class="control-value" id="slit-spacing-val-b">8.0 μm</span>
+                        </div>
+                        <input type="range" id="slit-spacing-slider-b"
+                               min="1" max="50" step="0.5" value="8">
+                    </div>
+
+                    <div class="control-row">
+                        <div class="control-label">
+                            <span>Num Slits B</span>
+                            <span class="control-value" id="num-slits-val-b">2</span>
+                        </div>
+                        <input type="range" id="num-slits-slider-b"
+                               min="1" max="20" step="1" value="2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="separator"></div>
+
+            <!-- ── Phasor Angle Control ─────────── -->
+            <div id="phasor-controls" class="section hidden">
+                <div class="section-title"><span class="icon">🔄</span> Phasor Angle</div>
+                <div class="control-row">
+                    <div class="control-label">
+                        <span>Observation Angle (θ)</span>
+                        <span class="control-value" id="phasor-angle-val">2.87°</span>
+                    </div>
+                    <input type="range" id="phasor-angle-slider"
+                           min="0" max="30" step="0.1" value="2.87">
+                </div>
+            </div>
+
+            <!-- ── Actions ──────────────────────── -->
+            <div class="section">
+                <div class="section-title"><span class="icon">🚀</span> Actions</div>
+                <div class="sidebar-actions">
+                    <button class="btn btn-accent" id="export-btn">
+                        📥 Export PNG
+                    </button>
+                    <button class="btn" id="edu-toggle">
+                        📚 Learn Physics
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+    <main class="main">
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="2d">
+                <span class="tab-icon">📈</span> 2D Intensity
+            </button>
+            <button class="tab-btn" data-tab="3d">
+                <span class="tab-icon">🌐</span> 3D Surface
+            </button>
+            <button class="tab-btn" data-tab="comparison">
+                <span class="tab-icon">⚖️</span> Comparison
+            </button>
+            <button class="tab-btn" data-tab="phasor">
+                <span class="tab-icon">🔄</span> Phasor
+            </button>
+        </div>
+
+        <!-- Plot Area -->
+        <div class="plot-area">
+            <div class="tab-panel active" data-tab="2d">
+                <div id="plot-2d"></div>
+            </div>
+            <div class="tab-panel" data-tab="3d">
+                <div id="plot-3d"></div>
+            </div>
+            <div class="tab-panel" data-tab="comparison">
+                <div id="plot-comparison"></div>
+            </div>
+            <div class="tab-panel" data-tab="phasor">
+                <div id="plot-phasor"></div>
+            </div>
+        </div>
+
+        <!-- Equation Bar -->
+        <div class="equation-bar">
+            <div id="equation-display">
+                \[ I(\theta) = I_0 \left[\frac{\sin\beta}{\beta}\right]^2 \]
+            </div>
+        </div>
+
+    </main>
+
+</div>
+
+<!-- ═══════════════ EDUCATIONAL OVERLAY ═══════════════ -->
+<div class="edu-overlay" id="edu-overlay">
+    <div class="edu-modal">
+        <div class="edu-modal-header">
+            <h2>📖 Understanding Diffraction</h2>
+            <button class="btn btn-icon" id="edu-close">✕</button>
+        </div>
+
+        <h3>What is Diffraction?</h3>
+        <p>
+            Diffraction is the bending and spreading of waves when they encounter an obstacle or pass through an aperture.
+            It is a fundamental consequence of the wave nature of light. When coherent light passes through a narrow slit,
+            it produces a characteristic pattern of bright and dark fringes on a distant screen.
+        </p>
+
+        <h3>Single-Slit Diffraction</h3>
+        <p>
+            When light passes through a single slit of width <strong>a</strong>, each point across the slit opening
+            acts as a source of secondary wavelets (Huygens' principle). These wavelets interfere, producing the
+            intensity pattern:
+        </p>
+        <div class="formula-block">
+            \[ I(\theta) = I_0 \left[\frac{\sin\beta}{\beta}\right]^2, \quad \beta = \frac{\pi a \sin\theta}{\lambda} \]
+        </div>
+        <p>
+            <strong>Minima</strong> occur when \(\sin\theta = m\lambda/a\) for integer \(m \neq 0\).
+            The central maximum contains about 84% of the total intensity.
+        </p>
+
+        <h3>Multi-Slit Diffraction (Gratings)</h3>
+        <p>
+            With <strong>N</strong> equally-spaced slits separated by distance <strong>d</strong>, the
+            single-slit envelope is modulated by an interference factor:
+        </p>
+        <div class="formula-block">
+            \[ I(\theta) = I_0 \left[\frac{\sin\beta}{\beta}\right]^2 \times
+               \left[\frac{\sin(N\delta/2)}{N\sin(\delta/2)}\right]^2, \quad
+               \delta = \frac{2\pi d \sin\theta}{\lambda} \]
+        </div>
+        <p>
+            <strong>Principal maxima</strong> occur when \(d\sin\theta = m\lambda\) (constructive interference
+            from all slits). Between each pair of principal maxima, there are \(N-2\) secondary maxima and
+            \(N-1\) minima from the interference factor alone.
+        </p>
+
+        <h3>Phasor Diagram</h3>
+        <p>
+            A phasor diagram visualizes how the N individual wave contributions add together.
+            Each phasor has the same amplitude but is rotated by phase angle \(\delta\) relative
+            to the previous one. The resultant amplitude (and thus intensity) depends on how
+            constructively or destructively the phasors combine.
+        </p>
+
+        <h3>Key Parameters</h3>
+        <p>
+            <strong>λ (Wavelength)</strong>: 380–700 nm covers the visible spectrum, from violet to red.<br>
+            <strong>a (Slit Width)</strong>: Narrower slits produce wider diffraction patterns.<br>
+            <strong>d (Slit Spacing)</strong>: Determines the angular spacing of interference fringes.<br>
+            <strong>N (Number of Slits)</strong>: More slits produce sharper, more defined maxima.<br>
+            <strong>L (Screen Distance)</strong>: Affects the scale of the pattern on the observation screen.
+        </p>
+
+        <h3>Tips for Exploration</h3>
+        <p>
+            🔹 Try making slit width <strong>a</strong> very small to see a wide envelope.<br>
+            🔹 Switch to grating mode and increase N to see how maxima sharpen.<br>
+            🔹 Use comparison mode to overlay patterns with different wavelengths.<br>
+            🔹 Explore the phasor diagram to understand constructive vs. destructive interference.<br>
+            🔹 Drag sliders and watch the equations update with your values in real-time!
+        </p>
+    </div>
+</div>
+
+<!-- App Script -->
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
